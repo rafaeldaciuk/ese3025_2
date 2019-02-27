@@ -29,6 +29,9 @@
 
 #define TICKRATE_HZ1 (10)	/* 10 ticks per second */
 
+#define LED_ON		false
+#define LED_OFF		true
+
 /**
  * @brief	Handle interrupt from SysTick timer
  * @return	Nothing
@@ -38,10 +41,11 @@ void SysTick_Handler(void)
 	static uint8_t ledNum = 0, hertzCnt = 0;
 
 	if (hertzCnt++ >= 10) {
-		Board_LED_Toggle(ledNum);
+		Board_LED_Set(ledNum, LED_OFF);
 		if (++ledNum >= 3) {
 			ledNum = 0;
 		}
+		Board_LED_Set(ledNum, LED_ON);
 		hertzCnt = 0;
 	}
 }
@@ -56,9 +60,9 @@ int main(void) {
     // functions related to the board hardware
     Board_Init();
     // Set the LED to the state of "On"
-    Board_LED_Set(LED_RED, true);
-    Board_LED_Set(LED_GREEN, true);
-    Board_LED_Set(LED_BLUE, true);
+    Board_LED_Set(LED_RED, LED_OFF);
+    Board_LED_Set(LED_GREEN, LED_OFF);
+    Board_LED_Set(LED_BLUE, LED_OFF);
 
 #endif
 #endif
