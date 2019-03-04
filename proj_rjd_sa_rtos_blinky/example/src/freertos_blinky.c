@@ -40,6 +40,8 @@
 #define LED_ON		false
 #define LED_OFF		true
 
+#define LED_ON_TIME	configTICK_RATE_HZ
+
 /*****************************************************************************
  * Public types/enumerations/variables
  ****************************************************************************/
@@ -60,34 +62,53 @@ static void prvSetupHardware(void)
     Board_LED_Set(LED_BLUE, LED_OFF);
 }
 
-/* LED1 toggle thread */
-static void vLEDTask1(void *pvParameters) {
-	uint8_t ledNum = 0;
-
+/* Red LED toggle thread */
+static void vLEDTaskRed(void *pvParameters) {
 	while (1) {
-		Board_LED_Set(ledNum, LED_OFF);
-		if (++ledNum >= 3) {
-			ledNum = 0;
-		}
-		Board_LED_Set(ledNum, LED_ON);
+		Board_LED_Set(LED_RED, LED_ON);
 
-		/* About a 1Hz on/off toggle rate */
-		vTaskDelay(configTICK_RATE_HZ / 2);
+		/* wait with LED on */
+		vTaskDelay(LED_ON_TIME);
+
+		Board_LED_Set(LED_RED, LED_OFF);
+
+		/* wait for other LEDs periods */
+		vTaskDelay(2 * LED_ON_TIME);
 	}
 }
 
-/* LED2 toggle thread */
-//static void vLEDTask2(void *pvParameters) {
-//	bool LedState = false;
-//
-//	while (1) {
-//		Board_LED_Set(1, LedState);
-//		LedState = (bool) !LedState;
-//
-//		/* About a 7Hz on/off toggle rate */
-//		vTaskDelay(configTICK_RATE_HZ / 14);
-//	}
-//}
+/* Green LED toggle thread */
+static void vLEDTaskGreen(void *pvParameters) {
+	while (1) {
+		/* wait for RED LED period */
+		vTaskDelay(LED_ON_TIME);
+
+		Board_LED_Set(LED_GREEN, LED_ON);
+
+		/* wait with LED on */
+		vTaskDelay(LED_ON_TIME);
+
+		Board_LED_Set(LED_GREEN, LED_OFF);
+
+		/* wait for BLUE LED period */
+		vTaskDelay(LED_ON_TIME);
+	}
+}
+
+/* Blue LED toggle thread */
+static void vLEDTaskBlue(void *pvParameters) {
+	while (1) {
+		/* wait for other LEDs periods */
+		vTaskDelay(2 * LED_ON_TIME);
+
+		Board_LED_Set(LED_BLUE, LED_ON);
+
+		/* wait with LED on */
+		vTaskDelay(LED_ON_TIME);
+
+		Board_LED_Set(LED_BLUE, LED_OFF);
+	}
+}
 
 /*****************************************************************************
  * Public functions
@@ -101,15 +122,20 @@ int main(void)
 {
 	prvSetupHardware();
 
-	/* LED1 toggle thread */
-	xTaskCreate(vLEDTask1, (signed char *) "vTaskLed1",
+	/* Red LED toggle thread */
+	xTaskCreate(vLEDTaskRed, (signed char *) "vTaskLedRed",
 				configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL),
 				(xTaskHandle *) NULL);
 
-	/* LED2 toggle thread */
-//	xTaskCreate(vLEDTask2, (signed char *) "vTaskLed2",
-//				configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL),
-//				(xTaskHandle *) NULL);
+	/* Green LED toggle thread */
+	xTaskCreate(vLEDTaskGreen, (signed char *) "vTaskLedGreen",
+				configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 2UL),
+				(xTaskHandle *) NULL);
+
+	/* Blue LED toggle thread */
+	xTaskCreate(vLEDTaskBlue, (signed char *) "vTaskLedBlue",
+				configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 3UL),
+				(xTaskHandle *) NULL);
 
 	/* Start the scheduler */
 	vTaskStartScheduler();
