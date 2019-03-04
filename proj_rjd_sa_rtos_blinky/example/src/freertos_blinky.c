@@ -37,6 +37,9 @@
  * Private types/enumerations/variables
  ****************************************************************************/
 
+#define LED_ON		false
+#define LED_OFF		true
+
 /*****************************************************************************
  * Public types/enumerations/variables
  ****************************************************************************/
@@ -51,48 +54,40 @@ static void prvSetupHardware(void)
 	SystemCoreClockUpdate();
 	Board_Init();
 
-	/* Initial LED0 state is off */
-	Board_LED_Set(0, false);
+    // Set the LEDs to the state of "On"
+    Board_LED_Set(LED_RED, LED_OFF);
+    Board_LED_Set(LED_GREEN, LED_OFF);
+    Board_LED_Set(LED_BLUE, LED_OFF);
 }
 
 /* LED1 toggle thread */
 static void vLEDTask1(void *pvParameters) {
-	bool LedState = false;
+	uint8_t ledNum = 0;
 
 	while (1) {
-		Board_LED_Set(0, LedState);
-		LedState = (bool) !LedState;
+		Board_LED_Set(ledNum, LED_OFF);
+		if (++ledNum >= 3) {
+			ledNum = 0;
+		}
+		Board_LED_Set(ledNum, LED_ON);
 
-		/* About a 3Hz on/off toggle rate */
-		vTaskDelay(configTICK_RATE_HZ / 6);
+		/* About a 1Hz on/off toggle rate */
+		vTaskDelay(configTICK_RATE_HZ / 2);
 	}
 }
 
 /* LED2 toggle thread */
-static void vLEDTask2(void *pvParameters) {
-	bool LedState = false;
-
-	while (1) {
-		Board_LED_Set(1, LedState);
-		LedState = (bool) !LedState;
-
-		/* About a 7Hz on/off toggle rate */
-		vTaskDelay(configTICK_RATE_HZ / 14);
-	}
-}
-
-/* UART (or output) thread */
-static void vUARTTask(void *pvParameters) {
-	int tickCnt = 0;
-
-	while (1) {
-		DEBUGOUT("Tick: %d\r\n", tickCnt);
-		tickCnt++;
-
-		/* About a 1s delay here */
-		vTaskDelay(configTICK_RATE_HZ);
-	}
-}
+//static void vLEDTask2(void *pvParameters) {
+//	bool LedState = false;
+//
+//	while (1) {
+//		Board_LED_Set(1, LedState);
+//		LedState = (bool) !LedState;
+//
+//		/* About a 7Hz on/off toggle rate */
+//		vTaskDelay(configTICK_RATE_HZ / 14);
+//	}
+//}
 
 /*****************************************************************************
  * Public functions
@@ -112,14 +107,9 @@ int main(void)
 				(xTaskHandle *) NULL);
 
 	/* LED2 toggle thread */
-	xTaskCreate(vLEDTask2, (signed char *) "vTaskLed2",
-				configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL),
-				(xTaskHandle *) NULL);
-
-	/* UART output thread, simply counts seconds */
-	xTaskCreate(vUARTTask, (signed char *) "vTaskUart",
-				configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL),
-				(xTaskHandle *) NULL);
+//	xTaskCreate(vLEDTask2, (signed char *) "vTaskLed2",
+//				configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL),
+//				(xTaskHandle *) NULL);
 
 	/* Start the scheduler */
 	vTaskStartScheduler();
