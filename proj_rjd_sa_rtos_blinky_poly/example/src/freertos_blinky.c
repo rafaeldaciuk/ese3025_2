@@ -40,7 +40,9 @@
 #define LED_ON		false
 #define LED_OFF		true
 
-#define LED_ON_TIME	configTICK_RATE_HZ
+#define LED_ON_TIME	4e6
+
+static xTaskHandle redTaskHandle, greenTaskHandle, blueTaskHandle;
 
 /*****************************************************************************
  * Public types/enumerations/variables
@@ -50,63 +52,61 @@
  * Private functions
  ****************************************************************************/
 
+static void prfDelayLoop(uint32_t delayCnt) {
+	for (int i = 0; i < delayCnt; i++);
+}
+
 /* Sets up system hardware */
 static void prvSetupHardware(void)
 {
 	SystemCoreClockUpdate();
 	Board_Init();
 
-    // Set the LEDs to the state of "On"
-    Board_LED_Set(LED_RED, LED_OFF);
+    // Set the red LED to the state of "On"
+    Board_LED_Set(LED_RED, LED_ON);
+    // Set the green and blue LEDs to the state of "Off"
     Board_LED_Set(LED_GREEN, LED_OFF);
     Board_LED_Set(LED_BLUE, LED_OFF);
 }
 
 /* Red LED toggle thread */
-static void vLEDTaskRed(void *pvParameters) {
+static void vLEDTask(void *pvParameters) {
+	rgb_led_t *taskLed = (rgb_led_t *)pvParameters;
+
 	while (1) {
-		Board_LED_Set(LED_RED, LED_ON);
+		Board_LED_Set(*taskLed, LED_ON);
 
 		/* wait with LED on */
-		vTaskDelay(LED_ON_TIME);
+		prfDelayLoop(LED_ON_TIME);
 
-		Board_LED_Set(LED_RED, LED_OFF);
+		Board_LED_Set(*taskLed, LED_OFF);
 
 		/* wait for other LEDs periods */
-		vTaskDelay(2 * LED_ON_TIME);
-	}
-}
+		prfDelayLoop(LED_ON_TIME);
 
-/* Green LED toggle thread */
-static void vLEDTaskGreen(void *pvParameters) {
-	while (1) {
-		/* wait for RED LED period */
-		vTaskDelay(LED_ON_TIME);
-
-		Board_LED_Set(LED_GREEN, LED_ON);
-
-		/* wait with LED on */
-		vTaskDelay(LED_ON_TIME);
-
-		Board_LED_Set(LED_GREEN, LED_OFF);
-
-		/* wait for BLUE LED period */
-		vTaskDelay(LED_ON_TIME);
-	}
-}
-
-/* Blue LED toggle thread */
-static void vLEDTaskBlue(void *pvParameters) {
-	while (1) {
-		/* wait for other LEDs periods */
-		vTaskDelay(2 * LED_ON_TIME);
-
-		Board_LED_Set(LED_BLUE, LED_ON);
-
-		/* wait with LED on */
-		vTaskDelay(LED_ON_TIME);
-
-		Board_LED_Set(LED_BLUE, LED_OFF);
+		switch(*taskLed) {
+		case LED_RED: {
+			taskENTER_CRITICAL();
+			vTaskPrioritySet(greenTaskHandle, (tskIDLE_PRIORITY + 2UL));
+			vTaskPrioritySet(redTaskHandle, (tskIDLE_PRIORITY + 1UL));
+			taskEXIT_CRITICAL();
+			break;
+		}
+		case LED_GREEN: {
+			taskENTER_CRITICAL();
+			vTaskPrioritySet(blueTaskHandle, (tskIDLE_PRIORITY + 2UL));
+			vTaskPrioritySet(greenTaskHandle, (tskIDLE_PRIORITY + 1UL));
+			taskEXIT_CRITICAL();
+			break;
+		}
+		case LED_BLUE: {
+			taskENTER_CRITICAL();
+			vTaskPrioritySet(redTaskHandle, (tskIDLE_PRIORITY + 2UL));
+			vTaskPrioritySet(blueTaskHandle, (tskIDLE_PRIORITY + 1UL));
+			taskEXIT_CRITICAL();
+			break;
+		}
+		}
 	}
 }
 
@@ -120,22 +120,26 @@ static void vLEDTaskBlue(void *pvParameters) {
  */
 int main(void)
 {
+	static rgb_led_t redTaskLed, greenTaskLed, blueTaskLed;
 	prvSetupHardware();
 
 	/* Red LED toggle thread */
-	xTaskCreate(vLEDTaskRed, (signed char *) "vTaskLedRed",
-				configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL),
-				(xTaskHandle *) NULL);
+	redTaskLed = LED_RED;
+	xTaskCreate(vLEDTask, (signed char *) "vTaskLedRed",
+				configMINIMAL_STACK_SIZE, &redTaskLed, (tskIDLE_PRIORITY + 2UL),
+				&redTaskHandle);
 
 	/* Green LED toggle thread */
-	xTaskCreate(vLEDTaskGreen, (signed char *) "vTaskLedGreen",
-				configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 2UL),
-				(xTaskHandle *) NULL);
+	greenTaskLed = LED_GREEN;
+	xTaskCreate(vLEDTask, (signed char *) "vTaskLedGreen",
+				configMINIMAL_STACK_SIZE, &greenTaskLed, (tskIDLE_PRIORITY + 1UL),
+				&greenTaskHandle);
 
 	/* Blue LED toggle thread */
-	xTaskCreate(vLEDTaskBlue, (signed char *) "vTaskLedBlue",
-				configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 3UL),
-				(xTaskHandle *) NULL);
+	blueTaskLed = LED_BLUE;
+	xTaskCreate(vLEDTask, (signed char *) "vTaskLedBlue",
+				configMINIMAL_STACK_SIZE, &blueTaskLed, (tskIDLE_PRIORITY + 1UL),
+				&blueTaskHandle);
 
 	/* Start the scheduler */
 	vTaskStartScheduler();
