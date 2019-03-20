@@ -34,13 +34,13 @@
 <stringAttribute key="org.eclipse.cdt.launch.DEBUGGER_START_MODE" value="remote"/>
 <booleanAttribute key="org.eclipse.cdt.launch.DEBUGGER_STOP_AT_MAIN" value="true"/>
 <stringAttribute key="org.eclipse.cdt.launch.DEBUGGER_STOP_AT_MAIN_SYMBOL" value="main"/>
-<stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="Debug/proj_rjd_sa_rtos_blinky_mutex.axf"/>
-<stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="proj_rjd_sa_rtos_blinky_mutex"/>
+<stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="Debug/proj_rjd_sa_rtos_blinky_poly.axf"/>
+<stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="proj_rjd_sa_rtos_blinky_poly"/>
 <booleanAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_AUTO_ATTR" value="false"/>
 <stringAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_ID_ATTR" value="com.crt.advproject.config.exe.debug.897255787"/>
 <booleanAttribute key="org.eclipse.cdt.launch.use_terminal" value="false"/>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
-<listEntry value="/proj_rjd_sa_rtos_blinky_mutex"/>
+<listEntry value="/proj_rjd_sa_rtos_blinky_poly"/>
 </listAttribute>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
 <listEntry value="4"/>
