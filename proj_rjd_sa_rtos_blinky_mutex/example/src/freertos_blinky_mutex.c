@@ -42,7 +42,8 @@
 #define LED_ON		false
 #define LED_OFF		true
 
-#define LED_ON_TIME	4e6
+//#define LED_ON_TIME	4e6
+#define LED_ON_TIME	(configTICK_RATE_HZ/2)
 
 static xTaskHandle redTaskHandle, greenTaskHandle, blueTaskHandle;
 
@@ -66,9 +67,8 @@ static void prvSetupHardware(void)
 	SystemCoreClockUpdate();
 	Board_Init();
 
-    // Set the red LED to the state of "On"
-    Board_LED_Set(LED_RED, LED_ON);
-    // Set the green and blue LEDs to the state of "Off"
+    // Set the LEDs to the state of "Off"
+    Board_LED_Set(LED_RED, LED_OFF);
     Board_LED_Set(LED_GREEN, LED_OFF);
     Board_LED_Set(LED_BLUE, LED_OFF);
 }
@@ -83,12 +83,12 @@ static void vLEDTask(void *pvParameters) {
 		Board_LED_Set(*taskLed, LED_ON);
 
 		/* wait with LED on */
-		prfDelayLoop(LED_ON_TIME);
+		vTaskDelay(LED_ON_TIME);
 
 		Board_LED_Set(*taskLed, LED_OFF);
 
 		/* wait for other LEDs periods */
-		prfDelayLoop(LED_ON_TIME);
+		vTaskDelay(LED_ON_TIME);
 
 		xSemaphoreGive(xLedSemaphore);
 
