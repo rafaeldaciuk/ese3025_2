@@ -44,7 +44,9 @@
 #define LED_ON		false
 #define LED_OFF		true
 
-#define LED_ON_TIME	configTICK_RATE_HZ
+#define LED_ON_TIME		(configTICK_RATE_HZ/2)
+#define LONG_WAIT_TIME	(16*configTICK_RATE_HZ)
+#define RECEIVER_TIME	(2*configTICK_RATE_HZ)
 
 /*****************************************************************************
  * Public types/enumerations/variables
@@ -68,21 +70,42 @@ static void prvSetupHardware(void)
 
 /* LED Color selection thread */
 static void vLEDColorSelectTask(void *pvParameters) {
+	portTickType tickCountStart, tickCountCurrent;
 	xQueueHandle ledColorQueue = (xQueueHandle)pvParameters;
+	printf("starting sender task\n");
 
 	while (1) {
-		uint8_t ledColors = rand() % 8;
+		printf("queue size begin: %u\n", uxQueueMessagesWaiting(ledColorQueue));
+		tickCountStart = xTaskGetTickCount();
 
-		xQueueSend(ledColorQueue, &ledColors, portMAX_DELAY);
+		// fill queue with LED colors for 4s at random intervals between 0 and 1 seconds
+		do {
 
-		/* wait with these LED colors */
-		vTaskDelay(LED_ON_TIME);
+			uint8_t ledColors = rand() % 8;
+
+			if (xQueueSendToBack(ledColorQueue, &ledColors, 0) != pdPASS) {
+				// queue was full
+				printf("queue full\n");
+			}
+
+			/* wait random time */
+			vTaskDelay(rand() % configTICK_RATE_HZ);
+
+			tickCountCurrent = xTaskGetTickCount();
+		} while ((tickCountCurrent - tickCountStart) < 4*configTICK_RATE_HZ);
+
+		// print the queue size for reference
+		printf("queue size end: %u\n", uxQueueMessagesWaiting(ledColorQueue));
+
+		// after 4s have passed, wait for a longer period
+		vTaskDelay(LONG_WAIT_TIME);
 	}
 }
 
 /* LED Color set thread */
 static void vLEDColorSetTask(void *pvParameters) {
 	xQueueHandle ledColorQueue = (xQueueHandle)pvParameters;
+	printf("starting receiver task\n");
 
 	while (1) {
 		uint8_t ledColors;
@@ -95,6 +118,9 @@ static void vLEDColorSetTask(void *pvParameters) {
 				Board_LED_Set(led, LED_OFF);
 			}
 		}
+
+		/* wait with these LED colors */
+		vTaskDelay(RECEIVER_TIME);
 	}
 }
 
@@ -112,7 +138,7 @@ int main(void)
 
 	prvSetupHardware();
 
-	ledColorQueue = xQueueCreate(1, sizeof(uint8_t));
+	ledColorQueue = xQueueCreate(10, sizeof(uint8_t));
 
 	if (ledColorQueue != NULL) {
 		/* LED color selection thread */
