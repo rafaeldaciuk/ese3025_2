@@ -33,7 +33,6 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
-#include "queue.h"
 
 /*****************************************************************************
  * Private types/enumerations/variables
@@ -42,10 +41,7 @@
 #define LED_ON		false
 #define LED_OFF		true
 
-//#define LED_ON_TIME	4e6
 #define LED_ON_TIME	(configTICK_RATE_HZ/2)
-
-static xTaskHandle redTaskHandle, greenTaskHandle, blueTaskHandle;
 
 xSemaphoreHandle xLedSemaphore;
 
@@ -56,10 +52,6 @@ xSemaphoreHandle xLedSemaphore;
 /*****************************************************************************
  * Private functions
  ****************************************************************************/
-
-static void prfDelayLoop(uint32_t delayCnt) {
-	for (int i = 0; i < delayCnt; i++);
-}
 
 /* Sets up system hardware */
 static void prvSetupHardware(void)
@@ -87,34 +79,12 @@ static void vLEDTask(void *pvParameters) {
 
 		Board_LED_Set(*taskLed, LED_OFF);
 
-		/* wait for other LEDs periods */
 		vTaskDelay(LED_ON_TIME);
 
 		xSemaphoreGive(xLedSemaphore);
 
-//		switch(*taskLed) {
-//		case LED_RED: {
-//			taskENTER_CRITICAL();
-//			vTaskPrioritySet(greenTaskHandle, (tskIDLE_PRIORITY + 2UL));
-//			vTaskPrioritySet(redTaskHandle, (tskIDLE_PRIORITY + 1UL));
-//			taskEXIT_CRITICAL();
-//			break;
-//		}
-//		case LED_GREEN: {
-//			taskENTER_CRITICAL();
-//			vTaskPrioritySet(blueTaskHandle, (tskIDLE_PRIORITY + 2UL));
-//			vTaskPrioritySet(greenTaskHandle, (tskIDLE_PRIORITY + 1UL));
-//			taskEXIT_CRITICAL();
-//			break;
-//		}
-//		case LED_BLUE: {
-//			taskENTER_CRITICAL();
-//			vTaskPrioritySet(redTaskHandle, (tskIDLE_PRIORITY + 2UL));
-//			vTaskPrioritySet(blueTaskHandle, (tskIDLE_PRIORITY + 1UL));
-//			taskEXIT_CRITICAL();
-//			break;
-//		}
-//		}
+		/* wait for other LEDs periods */
+		vTaskDelay(4*LED_ON_TIME);
 	}
 }
 
@@ -133,26 +103,28 @@ int main(void)
 
 	xLedSemaphore = xSemaphoreCreateMutex();
 
-	/* Red LED toggle thread */
-	redTaskLed = LED_RED;
-	xTaskCreate(vLEDTask, (signed char *) "vTaskLedRed",
-				configMINIMAL_STACK_SIZE, &redTaskLed, (tskIDLE_PRIORITY + 1UL),
-				&redTaskHandle);
+	if (xLedSemaphore != NULL) {
+		/* Red LED toggle thread */
+		redTaskLed = LED_RED;
+		xTaskCreate(vLEDTask, (signed char *) "vTaskLedRed",
+				configMINIMAL_STACK_SIZE, &redTaskLed, (tskIDLE_PRIORITY + 3UL),
+				NULL);
 
-	/* Green LED toggle thread */
-	greenTaskLed = LED_GREEN;
-	xTaskCreate(vLEDTask, (signed char *) "vTaskLedGreen",
-				configMINIMAL_STACK_SIZE, &greenTaskLed, (tskIDLE_PRIORITY + 1UL),
-				&greenTaskHandle);
+		/* Green LED toggle thread */
+		greenTaskLed = LED_GREEN;
+		xTaskCreate(vLEDTask, (signed char *) "vTaskLedGreen",
+				configMINIMAL_STACK_SIZE, &greenTaskLed, (tskIDLE_PRIORITY + 2UL),
+				NULL);
 
-	/* Blue LED toggle thread */
-	blueTaskLed = LED_BLUE;
-	xTaskCreate(vLEDTask, (signed char *) "vTaskLedBlue",
+		/* Blue LED toggle thread */
+		blueTaskLed = LED_BLUE;
+		xTaskCreate(vLEDTask, (signed char *) "vTaskLedBlue",
 				configMINIMAL_STACK_SIZE, &blueTaskLed, (tskIDLE_PRIORITY + 1UL),
-				&blueTaskHandle);
+				NULL);
 
-	/* Start the scheduler */
-	vTaskStartScheduler();
+		/* Start the scheduler */
+		vTaskStartScheduler();
+	}
 
 	/* Should never arrive here */
 	return 1;
