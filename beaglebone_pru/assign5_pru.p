@@ -4,18 +4,21 @@
 // the frequency increases. When a button that is connected to P9_27
 // (pru0_pru_r31_5) is pressed the frequency decreases.
 
-.origin 0			// start of program in PRU memory
-.entrypoint MAIN		// program entry point (for a debugger)
+.origin 0			// origin of application in PRU
+.entrypoint MAIN		// program entry point
 
-#define INS_PER_US   200	// 5ns per instruction
-#define INS_PER_DELAY_LOOP 2	// two instructions per delay loop
-				// default delay is 50 ms
+#define INS_PER_US   200	// 200 instructions per us
+#define INS_PER_DELAY_LOOP 2	// two instructions in the loop
+
+				// delay increments are 10 ms
 #define DELAYINC 10 * 1000 * (INS_PER_US / INS_PER_DELAY_LOOP) 
+				// default delay is 50 ms
 #define DELAY    50 * 1000 * (INS_PER_US / INS_PER_DELAY_LOOP)
+				// max delay is 1000 ms
 #define DELAYMAX 1000 * 1000 * (INS_PER_US / INS_PER_DELAY_LOOP)
 
-#define PRU0_R31_VEC_VALID 32    // allows notification of program completion
-#define PRU_EVTOUT_0    3        // the event number that is sent back
+#define PRU0_R31_VEC_VALID 32    // notification of end of program
+#define PRU_EVTOUT_0    3        // code of completion
 
 MAIN:
 	MOV	r1, DELAY	// store the default length of the delay in REG1
@@ -42,12 +45,12 @@ FREQ_UP_CONT:
 FREQ_DOWN_CONT:
 	MOV	r0, r1		// store the length of the delay in REG0
 DELAYLOOP:
-	SUB	r0, r0, 1	// Decrement REG0 by 1
-	QBNE	DELAYLOOP, r0, 0	// Loop to DELAYON, unless REG0=0
+	SUB	r0, r0, 1	// Decrement R0 by 1
+	QBNE	DELAYLOOP, r0, 0	// Loop to DELAYLOOP, until R0=0
 	QBA	START		// loop forever
-END:				// notify the calling app that finished
+END:				// notify loader program of end
 	MOV	R31.b0, PRU0_R31_VEC_VALID | PRU_EVTOUT_0
-	HALT			// halt the pru program
+	HALT			// stop the PRU
 
 RED_ON:
 	CLR	r30.t14		// turn on RED LED
